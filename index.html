@@ -158,7 +158,7 @@
 
         /* ===== COMPARISON AREA ===== */
         .comparison-area {
-            flex: 0 0 200px;
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -465,16 +465,24 @@
                 </select>
             </div>
 
+            <div class="control-group">
+                <label for="watch-a-select">Watch A:</label>
+                <select id="watch-a-select" onchange="selectWatch('a', this.value)">
+                    <option value="">Select...</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="watch-b-select">Watch B:</label>
+                <select id="watch-b-select" onchange="selectWatch('b', this.value)">
+                    <option value="">Select...</option>
+                </select>
+            </div>
+
             <button onclick="resetApp()">Reset</button>
         </div>
 
         <div class="main-content">
-            <!-- SIDEBAR: Watch List -->
-            <div class="sidebar">
-                <h3>Watch Models</h3>
-                <ul class="watch-list" id="watch-list"></ul>
-            </div>
-
             <!-- CENTER: Comparison Area -->
             <div class="comparison-area">
                 <div class="svg-container" id="svg-container">
@@ -591,31 +599,37 @@
             const series = document.getElementById('series-filter').value;
             const type = document.getElementById('type-filter').value;
 
-            const filtered = watches.filter(w => 
+            const filtered = watches.filter(w =>
                 (!series || w.series === series) && (!type || w.type === type)
             );
 
-            const list = document.getElementById('watch-list');
-            list.innerHTML = '';
+            // Update both dropdowns with filtered watches
+            const selectA = document.getElementById('watch-a-select');
+            const selectB = document.getElementById('watch-b-select');
 
-            filtered.forEach(watch => {
-                const li = document.createElement('li');
-                li.className = 'watch-item';
-                li.textContent = watch.model;
-                li.onclick = () => selectWatch(watch);
-                list.appendChild(li);
-            });
+            // Save current selections
+            const currentA = selectA.value;
+            const currentB = selectB.value;
+
+            // Rebuild select options
+            const baseHTML = '<option value="">Select...</option>';
+            const optionsHTML = filtered.map(w => `<option value="${w.id}">${w.model}</option>`).join('');
+
+            selectA.innerHTML = baseHTML + optionsHTML;
+            selectB.innerHTML = baseHTML + optionsHTML;
+
+            // Restore previous selections if still available
+            if (filtered.find(w => w.id === currentA)) selectA.value = currentA;
+            if (filtered.find(w => w.id === currentB)) selectB.value = currentB;
         }
 
-        function selectWatch(watch) {
-            if (!selectedWatches.a) {
-                selectedWatches.a = watch;
-            } else if (!selectedWatches.b) {
-                selectedWatches.b = watch;
+        function selectWatch(slot, watchId) {
+            if (!watchId) {
+                selectedWatches[slot] = null;
             } else {
-                selectedWatches.a = watch;
-                selectedWatches.b = null;
+                selectedWatches[slot] = watches.find(w => w.id === watchId);
             }
+            dragPositions[slot] = {x: 0, y: 0};  // reset drag position on new selection
             render();
         }
 
@@ -741,8 +755,11 @@
 
         function resetApp() {
             selectedWatches = {a: null, b: null};
+            dragPositions = {a: {x: 0, y: 0}, b: {x: 0, y: 0}};
             document.getElementById('series-filter').value = '';
             document.getElementById('type-filter').value = '';
+            document.getElementById('watch-a-select').value = '';
+            document.getElementById('watch-b-select').value = '';
             filterWatches();
             render();
         }
