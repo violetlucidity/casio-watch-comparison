@@ -552,32 +552,40 @@
         ];
 
         let selectedWatches = {a: null, b: null};
-        let dragState = {svg: null, startX: 0, startY: 0, currentX: 0, currentY: 0};
+        let dragPositions = {a: {x: 0, y: 0}, b: {x: 0, y: 0}};
+        let dragState = {svg: null, slot: null, startX: 0, startY: 0};
 
-        // Global pointer event handlers (attach once)
-        document.addEventListener('pointerdown', (e) => {
-            if (e.target.classList.contains('watch-svg')) {
-                dragState.svg = e.target;
-                dragState.startX = e.clientX - dragState.currentX;
-                dragState.startY = e.clientY - dragState.currentY;
-                e.target.style.cursor = 'grabbing';
-            }
-        });
-
-        document.addEventListener('pointermove', (e) => {
-            if (dragState.svg) {
-                dragState.currentX = e.clientX - dragState.startX;
-                dragState.currentY = e.clientY - dragState.startY;
-                dragState.svg.style.transform = `translate(${dragState.currentX}px, ${dragState.currentY}px)`;
-            }
-        });
-
-        document.addEventListener('pointerup', () => {
+        function releaseDrag() {
             if (dragState.svg) {
                 dragState.svg.style.cursor = 'grab';
                 dragState.svg = null;
+                dragState.slot = null;
+            }
+        }
+
+        // Global pointer event handlers (attach once)
+        document.addEventListener('pointerdown', (e) => {
+            const svgEl = e.target.closest('.watch-svg');
+            if (!svgEl) return;
+
+            dragState.svg = svgEl;
+            dragState.slot = svgEl.classList.contains('watch-a') ? 'a' : 'b';
+            dragState.startX = e.clientX - dragPositions[dragState.slot].x;
+            dragState.startY = e.clientY - dragPositions[dragState.slot].y;
+            svgEl.style.cursor = 'grabbing';
+            svgEl.setPointerCapture(e.pointerId);
+        });
+
+        document.addEventListener('pointermove', (e) => {
+            if (dragState.svg && dragState.slot) {
+                dragPositions[dragState.slot].x = e.clientX - dragState.startX;
+                dragPositions[dragState.slot].y = e.clientY - dragState.startY;
+                dragState.svg.style.transform = `translate(${dragPositions[dragState.slot].x}px, ${dragPositions[dragState.slot].y}px)`;
             }
         });
+
+        document.addEventListener('pointerup', releaseDrag);
+        document.addEventListener('pointercancel', releaseDrag);
 
         function filterWatches() {
             const series = document.getElementById('series-filter').value;
@@ -619,11 +627,11 @@
             const caseX = 6;
             const caseY = 6;
 
-            // Determine rounding based on watch type
+            // Determine rounding based on watch series
             let rx = 4, ry = 4;
-            if (watch.type.includes('G-SHOCK')) {
+            if (watch.series === 'G-SHOCK') {
                 rx = 2; ry = 2; // More square for G-SHOCK
-            } else if (watch.type.includes('Minimal') || watch.type.includes('Ladies')) {
+            } else if (watch.series.includes('Minimal') || watch.series.includes('Ladies')) {
                 rx = 6; ry = 6; // More rounded for elegant designs
             }
 
@@ -719,6 +727,16 @@
 
             container.innerHTML = svg;
             readout.innerHTML = specs;
+
+            // Reapply saved drag positions to SVGs
+            const svgA = container.querySelector('.watch-a');
+            if (svgA && (dragPositions.a.x !== 0 || dragPositions.a.y !== 0)) {
+                svgA.style.transform = `translate(${dragPositions.a.x}px, ${dragPositions.a.y}px)`;
+            }
+            const svgB = container.querySelector('.watch-b');
+            if (svgB && (dragPositions.b.x !== 0 || dragPositions.b.y !== 0)) {
+                svgB.style.transform = `translate(${dragPositions.b.x}px, ${dragPositions.b.y}px)`;
+            }
         }
 
         function resetApp() {
