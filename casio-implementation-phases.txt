@@ -1,0 +1,192 @@
+text
+### IMPLEMENTATION PHASES
+
+### PHASE 1: FIX MOBILE LAYOUT (Priority 1 - Must Have)
+**Goal:** Make mobile UI readable and usable
+
+**Requirements:**
+- Watch list: visible, scrollable, easy to tap  
+- Comparison area: shows selected watches clearly
+- Specs panel: all data readable, properly formatted
+- NO layout breaks, text overflow, or cramping
+
+**Constraints:**
+- Screen width: ~410px (mobile)
+- Font sizes: minimum 12px for readability
+- Touch targets: minimum 44px × 44px
+- Space allocation: sidebar 15%, comparison 55%, specs 30%
+
+**Success Criteria:**
+- [ ] No horizontal scrolling needed
+- [ ] All text readable at default zoom
+- [ ] Touch buttons/items are easy to tap
+- [ ] No content overlapping or hidden
+- [ ] Works on landscape and portrait
+
+**Mobile Layout Mockup:**
+
+┌─────────────────────────────────┐
+│ Header (fixed, 80px) │
+├─────────────────────────────────┤
+│ Controls (fixed, 60px) │
+├─────────────────────────────────┤
+│ Watch List │ ← 15% height (100px)
+│ [F-91W] [DW-5600] [GM-2100]... │ Horizontal scroll
+├─────────────────────────────────┤
+│ │
+│ Comparison Area │ ← 55% height (340px)
+│ (SVG watch outlines) │ Center vertically
+│ │
+├─────────────────────────────────┤
+│ Specs Panel │ ← 30% height (185px)
+│ Lug: 48.9mm │ Vertical scroll
+└─────────────────────────────────┘
+
+text
+
+---
+
+### PHASE 2: IMPROVE SVG VISUAL APPEARANCE (Priority 2 - Should Have)
+**Goal:** Make SVG shapes look more like watches, not rectangles
+
+**Option A (SIMPLE - Recommended for MVP):**
+- [ ] Add rounded corners (border-radius equivalent in SVG)
+- [ ] Add background fill (not just stroke)
+- [ ] Add subtle gradient or border for depth
+- [ ] Display name and lug dimension below
+- Estimated time: 30 minutes
+
+**SVG Example:**
+```svg
+<g class="watch-outline">
+  <!-- Rounded rectangle (watch case) -->
+  <rect x="6" y="6" width="110" height="100" rx="8" ry="8" 
+        class="watch-case" fill="white" stroke="#667eea" stroke-width="2"/>
+  
+  <!-- Optional: inner border for depth -->
+  <rect x="8" y="8" width="106" height="96" rx="6" ry="6" 
+        class="watch-inner" fill="none" stroke="#ddd" stroke-width="1" opacity="0.5"/>
+  
+  <!-- Model label -->
+  <text x="61" y="56" class="watch-label">F-91W</text>
+  
+  <!-- Lug dimension below -->
+  <text x="61" y="115" class="watch-dimension" font-size="10">38.2mm</text>
+</g>
+
+Success Criteria:
+
+    SVG looks like a watch case (not just rectangle)
+
+    Relative sizing maintained (F-91W smaller than DW-6900)
+
+    Model names readable on mobile
+
+    Lug-to-lug dimension visible
+
+PHASE 3: IMPLEMENT TOUCH DRAG (Priority 3 - Nice to Have)
+
+Goal: Enable drag-to-overlay comparison on mobile
+
+Current Issue: Using mousedown/mousemove only works on desktop
+
+Solution: Use pointer events (works for both mouse and touch)
+
+Key Code Changes:
+
+javascript
+svg.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    svg.dataset.isDragging = true;
+    svg.dataset.startX = e.clientX - (svg.dataset.offsetX || 0);
+    svg.dataset.startY = e.clientY - (svg.dataset.offsetY || 0);
+});
+
+document.addEventListener('pointermove', (e) => {
+    const svg = document.querySelector('.watch-svg[data-is-dragging="true"]');
+    if (!svg) return;
+    const x = e.clientX - svg.dataset.startX;
+    const y = e.clientY - svg.dataset.startY;
+    svg.style.transform = `translate(${x}px, ${y}px)`;
+    svg.dataset.offsetX = x;
+    svg.dataset.offsetY = y;
+});
+
+document.addEventListener('pointerup', () => {
+    document.querySelectorAll('.watch-svg').forEach(s => {
+        s.dataset.isDragging = false;
+    });
+});
+
+Success Criteria:
+
+    Can drag SVG watches on mobile
+
+    Smooth movement without jitter
+
+    Works in both portrait and landscape
+
+    Desktop mouse drag still works
+
+PHASE 4: EXPAND WATCH DATABASE (Priority 4 - Nice to Have)
+
+Goal: Add remaining 45 models (12 → 57 total)
+
+Data Source: Use existing CSV file with all 57 models
+
+Implementation: Add entries to JavaScript array
+
+Verification:
+
+    All 57 models appear in list
+
+    Filters work correctly (G-SHOCK, F-Series, etc.)
+
+    No performance degradation
+
+    All dimension data present
+
+Success Criteria:
+
+    57 total models selectable
+
+    Filters reduce list appropriately
+
+    No JavaScript errors
+
+    Load time < 2 seconds
+
+PHASE 5: DEPLOY & SHARE (Priority 5 - Nice to Have)
+
+Goal: Make app accessible to others
+
+Options:
+
+    GitHub Pages (Recommended)
+
+        Create repo: watch-comparison
+
+        Upload casio_watch_comparison.html
+
+        Settings → Pages → Enable
+
+        Share: https://username.github.io/watch-comparison/
+
+    Local file sharing
+
+        Share .html file directly
+
+    Netlify drop
+
+        Drag-drop deployment, free
+
+Success Criteria:
+
+    Live URL accessible by others
+
+    Works in incognito/private browsing
+
+    Loads < 3 seconds
+
+    No console errors
+
