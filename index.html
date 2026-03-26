@@ -212,6 +212,11 @@
             fill: rgba(118, 75, 162, 0.08);
         }
 
+        svg.watch-c .watch-case {
+            stroke: #27ae60;
+            fill: rgba(39, 174, 96, 0.08);
+        }
+
         .watch-label {
             font-size: 10px;
             font-weight: bold;
@@ -312,6 +317,47 @@
             color: #999;
             font-style: italic;
             font-size: 0.9em;
+        }
+
+        .specs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+        }
+
+        .specs-table th {
+            padding: 4px 6px;
+            border-bottom: 2px solid #ddd;
+            text-align: right;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .specs-table th:first-child {
+            text-align: left;
+            color: #666;
+        }
+
+        .specs-table td {
+            padding: 3px 6px;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: right;
+        }
+
+        .specs-table td:first-child {
+            font-weight: 500;
+            color: #666;
+            text-align: left;
+        }
+
+        .specs-table .diff-positive {
+            color: #27ae60;
+            font-weight: 500;
+        }
+
+        .specs-table .diff-negative {
+            color: #e74c3c;
+            font-weight: 500;
         }
 
         /* ===== TABLET: Switch to 2-row layout ===== */
@@ -479,6 +525,13 @@
                 </select>
             </div>
 
+            <div class="control-group">
+                <label for="watch-c-select">Watch C:</label>
+                <select id="watch-c-select" onchange="selectWatch('c', this.value)">
+                    <option value="">Select...</option>
+                </select>
+            </div>
+
             <button onclick="resetApp()">Reset</button>
         </div>
 
@@ -559,8 +612,8 @@
             {id: 'ft-600wb', model: 'FT-600WB', series: 'Vintage', type: 'Digital', lug: 39.0, width: 32.0, thickness: 10.0, band: 18},
         ];
 
-        let selectedWatches = {a: null, b: null};
-        let dragPositions = {a: {x: 0, y: 0}, b: {x: 0, y: 0}};
+        let selectedWatches = {a: null, b: null, c: null};
+        let dragPositions = {a: {x: 0, y: 0}, b: {x: 0, y: 0}, c: {x: 0, y: 0}};
         let dragState = {svg: null, slot: null, startX: 0, startY: 0};
 
         function releaseDrag() {
@@ -577,7 +630,11 @@
             if (!svgEl) return;
 
             dragState.svg = svgEl;
-            dragState.slot = svgEl.classList.contains('watch-a') ? 'a' : 'b';
+            if (svgEl.classList.contains('watch-a')) dragState.slot = 'a';
+            else if (svgEl.classList.contains('watch-b')) dragState.slot = 'b';
+            else if (svgEl.classList.contains('watch-c')) dragState.slot = 'c';
+            else return;
+
             dragState.startX = e.clientX - dragPositions[dragState.slot].x;
             dragState.startY = e.clientY - dragPositions[dragState.slot].y;
             svgEl.style.cursor = 'grabbing';
@@ -603,13 +660,15 @@
                 (!series || w.series === series) && (!type || w.type === type)
             );
 
-            // Update both dropdowns with filtered watches
+            // Update all three dropdowns with filtered watches
             const selectA = document.getElementById('watch-a-select');
             const selectB = document.getElementById('watch-b-select');
+            const selectC = document.getElementById('watch-c-select');
 
             // Save current selections
             const currentA = selectA.value;
             const currentB = selectB.value;
+            const currentC = selectC.value;
 
             // Rebuild select options
             const baseHTML = '<option value="">Select...</option>';
@@ -617,10 +676,12 @@
 
             selectA.innerHTML = baseHTML + optionsHTML;
             selectB.innerHTML = baseHTML + optionsHTML;
+            selectC.innerHTML = baseHTML + optionsHTML;
 
             // Restore previous selections if still available
             if (filtered.find(w => w.id === currentA)) selectA.value = currentA;
             if (filtered.find(w => w.id === currentB)) selectB.value = currentB;
+            if (filtered.find(w => w.id === currentC)) selectC.value = currentC;
         }
 
         function selectWatch(slot, watchId) {
@@ -763,55 +824,65 @@
             const container = document.getElementById('svg-container');
             const readout = document.getElementById('readout-content');
 
-            if (!selectedWatches.a && !selectedWatches.b) {
+            if (!selectedWatches.a && !selectedWatches.b && !selectedWatches.c) {
                 container.innerHTML = '<div class="message">👈 Click a watch to start</div>';
                 readout.innerHTML = '<div class="message">Select watches</div>';
                 return;
             }
 
             let svg = '';
-            let specs = '';
 
-            if (selectedWatches.a) {
-                svg += generateSVG(selectedWatches.a, 'watch-a');
-                specs += `
-                    <div class="watch-specs">
-                        <h4>${selectedWatches.a.model}</h4>
-                        <div class="spec-row"><span class="spec-label">Lug:</span><span class="spec-value">${selectedWatches.a.lug}mm</span></div>
-                        <div class="spec-row"><span class="spec-label">Width:</span><span class="spec-value">${selectedWatches.a.width}mm</span></div>
-                        <div class="spec-row"><span class="spec-label">Thick:</span><span class="spec-value">${selectedWatches.a.thickness}mm</span></div>
-                        <div class="spec-row"><span class="spec-label">Band:</span><span class="spec-value">${selectedWatches.a.band}mm</span></div>
-                    </div>
-                `;
+            // Generate SVGs for all selected watches
+            if (selectedWatches.a) svg += generateSVG(selectedWatches.a, 'watch-a');
+            if (selectedWatches.b) svg += generateSVG(selectedWatches.b, 'watch-b');
+            if (selectedWatches.c) svg += generateSVG(selectedWatches.c, 'watch-c');
+
+            // Build comparison table
+            const dims = ['Lug', 'Width', 'Thick', 'Band'];
+            const keys = ['lug', 'width', 'thickness', 'band'];
+            let specs = '<table class="specs-table"><thead><tr><th>Specs</th>';
+
+            if (selectedWatches.a) specs += `<th style="color: #667eea;">${selectedWatches.a.model}</th>`;
+            if (selectedWatches.b) specs += `<th style="color: #764ba2;">${selectedWatches.b.model}</th>`;
+            if (selectedWatches.c) specs += `<th style="color: #27ae60;">${selectedWatches.c.model}</th>`;
+
+            specs += '</tr></thead><tbody>';
+
+            // Data rows for each dimension
+            dims.forEach((dim, i) => {
+                specs += `<tr><td>${dim}</td>`;
+                if (selectedWatches.a) specs += `<td>${selectedWatches.a[keys[i]]}mm</td>`;
+                if (selectedWatches.b) specs += `<td>${selectedWatches.b[keys[i]]}mm</td>`;
+                if (selectedWatches.c) specs += `<td>${selectedWatches.c[keys[i]]}mm</td>`;
+                specs += '</tr>';
+            });
+
+            // Diff rows (compare B and C to A if available)
+            if (selectedWatches.b || selectedWatches.c) {
+                specs += '<tr><td>Diff vs A</td>';
+                specs += '<td>—</td>';
+
+                if (selectedWatches.b) {
+                    const lugDiff = (selectedWatches.b.lug - selectedWatches.a.lug).toFixed(1);
+                    const diffClass = lugDiff > 0 ? 'diff-positive' : 'diff-negative';
+                    specs += `<td class="${diffClass}">${lugDiff > 0 ? '+' : ''}${lugDiff}mm</td>`;
+                }
+
+                if (selectedWatches.c) {
+                    const lugDiff = (selectedWatches.c.lug - selectedWatches.a.lug).toFixed(1);
+                    const diffClass = lugDiff > 0 ? 'diff-positive' : 'diff-negative';
+                    specs += `<td class="${diffClass}">${lugDiff > 0 ? '+' : ''}${lugDiff}mm</td>`;
+                }
+
+                specs += '</tr>';
             }
 
-            if (selectedWatches.b) {
-                svg += generateSVG(selectedWatches.b, 'watch-b');
-                specs += `
-                    <div class="watch-specs watch-b">
-                        <h4>${selectedWatches.b.model}</h4>
-                        <div class="spec-row"><span class="spec-label">Lug:</span><span class="spec-value">${selectedWatches.b.lug}mm</span></div>
-                        <div class="spec-row"><span class="spec-label">Width:</span><span class="spec-value">${selectedWatches.b.width}mm</span></div>
-                        <div class="spec-row"><span class="spec-label">Thick:</span><span class="spec-value">${selectedWatches.b.thickness}mm</span></div>
-                        <div class="spec-row"><span class="spec-label">Band:</span><span class="spec-value">${selectedWatches.b.band}mm</span></div>
-                    </div>
-                `;
-            }
-
-            if (selectedWatches.a && selectedWatches.b) {
-                const lugDiff = (selectedWatches.b.lug - selectedWatches.a.lug).toFixed(1);
-                const widthDiff = (selectedWatches.b.width - selectedWatches.a.width).toFixed(1);
-                specs += `
-                    <div class="comparison-row">
-                        📊 Diff: Lug ${lugDiff > 0 ? '+' : ''}${lugDiff}mm
-                    </div>
-                `;
-            }
+            specs += '</tbody></table>';
 
             container.innerHTML = svg;
             readout.innerHTML = specs;
 
-            // Reapply saved drag positions to SVGs
+            // Reapply saved drag positions to all SVGs
             const svgA = container.querySelector('.watch-a');
             if (svgA && (dragPositions.a.x !== 0 || dragPositions.a.y !== 0)) {
                 svgA.style.transform = `translate(${dragPositions.a.x}px, ${dragPositions.a.y}px)`;
@@ -820,15 +891,20 @@
             if (svgB && (dragPositions.b.x !== 0 || dragPositions.b.y !== 0)) {
                 svgB.style.transform = `translate(${dragPositions.b.x}px, ${dragPositions.b.y}px)`;
             }
+            const svgC = container.querySelector('.watch-c');
+            if (svgC && (dragPositions.c.x !== 0 || dragPositions.c.y !== 0)) {
+                svgC.style.transform = `translate(${dragPositions.c.x}px, ${dragPositions.c.y}px)`;
+            }
         }
 
         function resetApp() {
-            selectedWatches = {a: null, b: null};
-            dragPositions = {a: {x: 0, y: 0}, b: {x: 0, y: 0}};
+            selectedWatches = {a: null, b: null, c: null};
+            dragPositions = {a: {x: 0, y: 0}, b: {x: 0, y: 0}, c: {x: 0, y: 0}};
             document.getElementById('series-filter').value = '';
             document.getElementById('type-filter').value = '';
             document.getElementById('watch-a-select').value = '';
             document.getElementById('watch-b-select').value = '';
+            document.getElementById('watch-c-select').value = '';
             filterWatches();
             render();
         }
