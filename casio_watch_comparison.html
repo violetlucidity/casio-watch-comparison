@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casio Watch Comparison Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: white;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.3em;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 0.8em;
+            opacity: 0.95;
+        }
+
+        /* ===== CONTROLS ===== */
+        .controls {
+            display: flex;
+            gap: 10px;
+            padding: 12px 15px;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        select {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85em;
+            background: white;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 6px 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85em;
+        }
+
+        button:active {
+            background: #764ba2;
+        }
+
+        /* ===== MAIN CONTENT - MOBILE FIRST (VERTICAL STACK) ===== */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
+
+        /* ===== SIDEBAR (Watch List) ===== */
+        .sidebar {
+            background: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            padding: 8px;
+            overflow-y: auto;
+            flex: 0 0 80px;
+            min-height: 70px;
+        }
+
+        .sidebar h3 {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .watch-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .watch-item {
+            padding: 6px 10px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            user-select: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .watch-item:active {
+            border-color: #667eea;
+            background: #f0f0f0;
+        }
+
+        .watch-item.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* ===== COMPARISON AREA ===== */
+        .comparison-area {
+            flex: 0 0 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            background: white;
+            overflow-y: auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .svg-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            width: 100%;
+            position: relative;
+        }
+
+        svg {
+            cursor: grab;
+            user-select: none;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            max-width: 100px;
+            width: 100px;
+            height: auto;
+            pointer-events: auto;
+            position: relative;
+            touch-action: none;
+        }
+
+        svg:active {
+            cursor: grabbing;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+
+        .watch-case {
+            fill: none;
+            stroke: #333;
+            stroke-width: 2;
+        }
+
+        svg.watch-a .watch-case {
+            stroke: #667eea;
+            fill: rgba(102, 126, 234, 0.08);
+        }
+
+        svg.watch-b .watch-case {
+            stroke: #764ba2;
+            fill: rgba(118, 75, 162, 0.08);
+        }
+
+        .watch-label {
+            font-size: 10px;
+            font-weight: bold;
+            text-anchor: middle;
+            fill: #333;
+        }
+
+        .dimension-line {
+            stroke: #999;
+            stroke-width: 1;
+            stroke-dasharray: 3,2;
+        }
+
+        .dimension-text {
+            font-size: 9px;
+            fill: #666;
+            text-anchor: middle;
+        }
+
+        /* ===== READOUT (Specs Panel) ===== */
+        .readout {
+            background: #f9f9f9;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+            flex: 0 0 auto;
+            flex-grow: 1;
+            min-height: 100px;
+            max-height: 150px;
+        }
+
+        .readout h3 {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .watch-specs {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 3px;
+            border-left: 3px solid #667eea;
+        }
+
+        .watch-specs.watch-b {
+            border-left-color: #764ba2;
+        }
+
+        .watch-specs h4 {
+            font-size: 0.8em;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 0.75em;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .spec-row:last-child {
+            border-bottom: none;
+        }
+
+        .spec-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .spec-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .comparison-row {
+            margin-top: 6px;
+            padding: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            font-weight: 500;
+            font-size: 0.75em;
+        }
+
+        .difference-positive {
+            color: #2ecc71;
+        }
+
+        .difference-negative {
+            color: #e74c3c;
+        }
+
+        .message {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        /* ===== TABLET: Switch to 2-row layout ===== */
+        @media (min-width: 768px) {
+            .main-content {
+                flex-direction: row;
+                gap: 0;
+            }
+
+            .sidebar {
+                flex: 0 0 180px;
+                border-bottom: none;
+                border-right: 1px solid #ddd;
+                padding: 15px;
+                overflow-y: auto;
+            }
+
+            .sidebar h3 {
+                font-size: 0.9em;
+                margin-bottom: 12px;
+            }
+
+            .watch-list {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .watch-item {
+                width: 100%;
+                padding: 8px;
+                font-size: 0.85em;
+            }
+
+            .comparison-area {
+                flex: 1;
+                flex-direction: column;
+                padding: 20px;
+            }
+
+            .svg-container {
+                gap: 40px;
+            }
+
+            svg {
+                max-width: 150px;
+            }
+
+            .readout {
+                flex: 0 0 160px;
+                border-top: none;
+                border-left: 1px solid #ddd;
+                padding: 15px;
+                overflow-y: auto;
+            }
+
+            .readout h3 {
+                font-size: 0.95em;
+            }
+
+            .watch-specs {
+                margin-bottom: 12px;
+                padding: 10px;
+            }
+
+            .spec-row {
+                font-size: 0.8em;
+                padding: 4px 0;
+            }
+        }
+
+        /* ===== DESKTOP: Full 3-column grid ===== */
+        @media (min-width: 1024px) {
+            .main-content {
+                flex-direction: row;
+            }
+
+            .sidebar {
+                flex: 0 0 220px;
+                padding: 20px;
+            }
+
+            .sidebar h3 {
+                font-size: 1em;
+            }
+
+            .comparison-area {
+                flex: 1;
+                padding: 30px;
+            }
+
+            .svg-container {
+                gap: 50px;
+            }
+
+            svg {
+                max-width: 180px;
+            }
+
+            .readout {
+                flex: 0 0 280px;
+                padding: 20px;
+            }
+
+            .readout h3 {
+                font-size: 1em;
+            }
+
+            .watch-specs {
+                margin-bottom: 15px;
+                padding: 12px;
+            }
+
+            .spec-row {
+                font-size: 0.85em;
+                padding: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⌚ Casio Watch Comparison</h1>
+            <p>Click watches to compare • Drag to overlay</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="series-filter">Series:</label>
+                <select id="series-filter" onchange="filterWatches()">
+                    <option value="">All Series</option>
+                    <option value="G-SHOCK">G-SHOCK</option>
+                    <option value="Vintage Classic">Vintage Classic</option>
+                    <option value="Vintage">Vintage</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Dual-Display">Dual-Display</option>
+                    <option value="Analog-Digital">Analog-Digital</option>
+                    <option value="Sports Solar">Sports Solar</option>
+                    <option value="Analog Water-Resist">Water-Resistant</option>
+                    <option value="Minimal Retro">Minimal Retro</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="type-filter">Type:</label>
+                <select id="type-filter" onchange="filterWatches()">
+                    <option value="">All</option>
+                    <option value="Digital">Digital</option>
+                    <option value="Analog">Analog</option>
+                    <option value="Analog-Digital">Hybrid</option>
+                </select>
+            </div>
+
+            <button onclick="resetApp()">Reset</button>
+        </div>
+
+        <div class="main-content">
+            <!-- SIDEBAR: Watch List -->
+            <div class="sidebar">
+                <h3>Watch Models</h3>
+                <ul class="watch-list" id="watch-list"></ul>
+            </div>
+
+            <!-- CENTER: Comparison Area -->
+            <div class="comparison-area">
+                <div class="svg-container" id="svg-container">
+                    <div class="message">👈 Click a watch to start</div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Specs Panel -->
+            <div class="readout">
+                <h3>Specs</h3>
+                <div id="readout-content">
+                    <div class="message">Select watches</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const watches = [
+            {id: 'f-91w', model: 'F-91W', series: 'Vintage Classic', type: 'Digital LCD', lug: 38.2, width: 35.2, thickness: 8.5, band: 18},
+            {id: 'f-93w', model: 'F-93W', series: 'Vintage Classic', type: 'Digital LCD', lug: 38.5, width: 35.0, thickness: 8.8, band: 18},
+            {id: 'f-108', model: 'F-108WH', series: 'Standard', type: 'Digital LCD', lug: 44.4, width: 42.6, thickness: 10.3, band: 20},
+            {id: 'f-200', model: 'F-200W', series: 'Standard', type: 'Digital LCD', lug: 44.1, width: 40.0, thickness: 11.5, band: 20},
+            {id: 'f-201', model: 'F-201W', series: 'Standard', type: 'Digital LCD', lug: 41.0, width: 34.0, thickness: 10.5, band: 18},
+            {id: 'a168w', model: 'A168W', series: 'Vintage', type: 'Analog-Digital', lug: 38.6, width: 36.3, thickness: 9.6, band: 18},
+            {id: 'a158w', model: 'A158W', series: 'Vintage', type: 'Analog-Digital', lug: 37.5, width: 33.5, thickness: 9.5, band: 18},
+            {id: 'a500', model: 'A500', series: 'Vintage', type: 'Digital LCD', lug: 39.0, width: 34.0, thickness: 9.6, band: 18},
+            {id: 'ae-1000', model: 'AE-1000W', series: 'Dual-Display', type: 'Analog-Digital', lug: 48.1, width: 43.7, thickness: 13.77, band: 22},
+            {id: 'ae-1200', model: 'AE-1200WH', series: 'Dual-Display', type: 'Analog-Digital', lug: 45.0, width: 42.1, thickness: 12.5, band: 20},
+            {id: 'ae-1200sn', model: 'AE-1200SN', series: 'Dual-Display', type: 'Analog-Digital', lug: 45.0, width: 42.1, thickness: 12.5, band: 20},
+            {id: 'aw90', model: 'AW90', series: 'Analog-Digital', type: 'Analog-Digital', lug: 45.0, width: 38.6, thickness: 9.5, band: 18},
+            {id: 'aw80', model: 'AW80', series: 'Analog-Digital', type: 'Analog-Digital', lug: 44.5, width: 38.5, thickness: 11.0, band: 18},
+            {id: 'aw49', model: 'AW49', series: 'Analog-Digital', type: 'Analog-Digital', lug: 42.0, width: 36.0, thickness: 9.0, band: 18},
+            {id: 'aq230', model: 'AQ230', series: 'Digital', type: 'Digital LCD', lug: 38.8, width: 29.8, thickness: 8.1, band: 18},
+            {id: 'ca53w', model: 'CA53W', series: 'Calculator', type: 'Digital-Calculator', lug: 42.0, width: 33.0, thickness: 7.0, band: 18},
+            {id: 'dw-5600e', model: 'DW-5600E', series: 'G-SHOCK', type: 'Digital', lug: 48.9, width: 42.8, thickness: 13.4, band: 20},
+            {id: 'dw-5600e-1v', model: 'DW-5600E-1V', series: 'G-SHOCK', type: 'Digital', lug: 48.9, width: 42.8, thickness: 13.4, band: 20},
+            {id: 'dw-5600bb', model: 'DW-5600BB', series: 'G-SHOCK', type: 'Digital', lug: 48.9, width: 42.8, thickness: 13.4, band: 20},
+            {id: 'g-5600e', model: 'G-5600E', series: 'G-SHOCK', type: 'Digital', lug: 46.7, width: 43.2, thickness: 12.7, band: 20},
+            {id: 'gwm-5610', model: 'GWM-5610', series: 'G-SHOCK', type: 'Digital Solar', lug: 46.7, width: 43.2, thickness: 12.77, band: 20},
+            {id: 'gm-2100', model: 'GM-2100', series: 'G-SHOCK', type: 'Analog-Digital', lug: 48.5, width: 48.5, thickness: 11.8, band: 20},
+            {id: 'gm-2110d', model: 'GM-2110D', series: 'G-SHOCK', type: 'Analog-Digital', lug: 48.5, width: 48.5, thickness: 12.0, band: 20},
+            {id: 'dw-6900', model: 'DW-6900', series: 'G-SHOCK', type: 'Digital', lug: 53.2, width: 50.0, thickness: 16.3, band: 24},
+            {id: 'dw-6900ww', model: 'DW-6900WW', series: 'G-SHOCK', type: 'Digital', lug: 53.2, width: 50.0, thickness: 16.3, band: 24},
+            {id: 'ga-100', model: 'GA-100', series: 'G-SHOCK', type: 'Analog-Digital', lug: 49.6, width: 47.8, thickness: 15.7, band: 22},
+            {id: 'ga-110', model: 'GA-110', series: 'G-SHOCK', type: 'Analog-Digital', lug: 51.2, width: 51.2, thickness: 16.0, band: 24},
+            {id: 'ga-2100', model: 'GA-2100', series: 'G-SHOCK', type: 'Analog-Digital', lug: 48.5, width: 48.5, thickness: 11.8, band: 20},
+            {id: 'g-100', model: 'G-100', series: 'G-SHOCK', type: 'Digital Solar', lug: 49.6, width: 47.8, thickness: 15.7, band: 22},
+            {id: 'dw-9052', model: 'DW-9052', series: 'G-SHOCK', type: 'Digital', lug: 48.5, width: 43.0, thickness: 14.7, band: 20},
+            {id: 'g-9000', model: 'G-9000', series: 'G-SHOCK', type: 'Digital', lug: 51.0, width: 51.0, thickness: 17.5, band: 24},
+            {id: 'mtg-b1000', model: 'MTG-B1000', series: 'G-SHOCK', type: 'Analog-Digital', lug: 55.0, width: 55.0, thickness: 16.5, band: 24},
+            {id: 'mtg-b2000', model: 'MTG-B2000', series: 'G-SHOCK', type: 'Analog-Digital', lug: 55.5, width: 55.5, thickness: 17.3, band: 24},
+            {id: 'w-213', model: 'W-213', series: 'Standard Digital', type: 'Digital', lug: 45.5, width: 40.0, thickness: 11.7, band: 20},
+            {id: 'w-215', model: 'W-215', series: 'Standard Digital', type: 'Digital', lug: 43.8, width: 40.7, thickness: 10.9, band: 20},
+            {id: 'w-217h', model: 'W-217H', series: 'Standard Digital', type: 'Digital', lug: 43.1, width: 41.2, thickness: 10.5, band: 20},
+            {id: 'w-218h', model: 'W-218H', series: 'Standard Digital', type: 'Digital', lug: 44.4, width: 43.2, thickness: 10.8, band: 20},
+            {id: 'w-800', model: 'W-800', series: 'Standard Digital', type: 'Digital', lug: 43.9, width: 35.7, thickness: 12.5, band: 18},
+            {id: 'w-96h', model: 'W-96H', series: 'Standard Digital', type: 'Digital', lug: 43.9, width: 35.7, thickness: 12.5, band: 18},
+            {id: 'ws-210h', model: 'WS-210H', series: 'Sports Solar', type: 'Digital Solar', lug: 45.4, width: 44.0, thickness: 13.3, band: 20},
+            {id: 'ws-1000h', model: 'WS-1000H', series: 'Sports Solar', type: 'Digital Solar', lug: 48.3, width: 42.6, thickness: 12.7, band: 20},
+            {id: 'wv-58', model: 'WV-58', series: 'Analog Water-Resist', type: 'Analog', lug: 51.5, width: 42.0, thickness: 11.0, band: 20},
+            {id: 'wv-59', model: 'WV-59', series: 'Analog Water-Resist', type: 'Analog', lug: 48.3, width: 39.0, thickness: 12.5, band: 20},
+            {id: 'wv-200a', model: 'WV-200A', series: 'Analog Water-Resist', type: 'Analog', lug: 48.3, width: 39.0, thickness: 12.5, band: 20},
+            {id: 'mrw-200h', model: 'MRW-200H', series: 'Minimal Retro', type: 'Analog', lug: 47.9, width: 44.6, thickness: 11.6, band: 20},
+            {id: 'mw-600', model: 'MW-600', series: 'Minimal Retro', type: 'Analog', lug: 46.2, width: 41.5, thickness: 12.4, band: 20},
+            {id: 'mw-59', model: 'MW-59', series: 'Minimal Retro', type: 'Analog', lug: 40.0, width: 36.1, thickness: 8.9, band: 18},
+            {id: 'hda-600', model: 'HDA-600', series: 'Hydro', type: 'Analog', lug: 44.6, width: 41.1, thickness: 13.4, band: 20},
+            {id: 'ldf-50', model: 'LDF-50', series: 'Ladies Digital', type: 'Digital', lug: 46.7, width: 23.6, thickness: 11.4, band: 14},
+            {id: 'lx-610', model: 'LX-610', series: 'Ladies Digital', type: 'Digital', lug: 46.2, width: 39.5, thickness: 12.4, band: 18},
+            {id: 'lrw-200h', model: 'LRW-200H', series: 'Ladies Water-Resist', type: 'Analog', lug: 38.9, width: 34.2, thickness: 11.5, band: 16},
+            {id: 'lw-200', model: 'LW-200', series: 'Ladies Digital', type: 'Digital', lug: 37.9, width: 34.9, thickness: 11.9, band: 16},
+            {id: 'sgw-100b', model: 'SGW-100B', series: 'Sports Solar', type: 'Digital Solar', lug: 51.5, width: 47.6, thickness: 13.2, band: 22},
+            {id: 'gwm-530a', model: 'GWM-530A', series: 'G-SHOCK', type: 'Digital Solar', lug: 56.8, width: 46.0, thickness: 16.6, band: 22},
+            {id: 'ft-600wb', model: 'FT-600WB', series: 'Vintage', type: 'Digital', lug: 39.0, width: 32.0, thickness: 10.0, band: 18},
+        ];
+
+        let selectedWatches = {a: null, b: null};
+        let dragState = {svg: null, startX: 0, startY: 0, currentX: 0, currentY: 0};
+
+        // Global pointer event handlers (attach once)
+        document.addEventListener('pointerdown', (e) => {
+            if (e.target.classList.contains('watch-svg')) {
+                dragState.svg = e.target;
+                dragState.startX = e.clientX - dragState.currentX;
+                dragState.startY = e.clientY - dragState.currentY;
+                e.target.style.cursor = 'grabbing';
+            }
+        });
+
+        document.addEventListener('pointermove', (e) => {
+            if (dragState.svg) {
+                dragState.currentX = e.clientX - dragState.startX;
+                dragState.currentY = e.clientY - dragState.startY;
+                dragState.svg.style.transform = `translate(${dragState.currentX}px, ${dragState.currentY}px)`;
+            }
+        });
+
+        document.addEventListener('pointerup', () => {
+            if (dragState.svg) {
+                dragState.svg.style.cursor = 'grab';
+                dragState.svg = null;
+            }
+        });
+
+        function filterWatches() {
+            const series = document.getElementById('series-filter').value;
+            const type = document.getElementById('type-filter').value;
+
+            const filtered = watches.filter(w => 
+                (!series || w.series === series) && (!type || w.type === type)
+            );
+
+            const list = document.getElementById('watch-list');
+            list.innerHTML = '';
+
+            filtered.forEach(watch => {
+                const li = document.createElement('li');
+                li.className = 'watch-item';
+                li.textContent = watch.model;
+                li.onclick = () => selectWatch(watch);
+                list.appendChild(li);
+            });
+        }
+
+        function selectWatch(watch) {
+            if (!selectedWatches.a) {
+                selectedWatches.a = watch;
+            } else if (!selectedWatches.b) {
+                selectedWatches.b = watch;
+            } else {
+                selectedWatches.a = watch;
+                selectedWatches.b = null;
+            }
+            render();
+        }
+
+        function generateSVG(watch, className) {
+            const scale = 2.0;
+            // Lug-to-lug is horizontal (width), case width is vertical (height)
+            const lugWidth = watch.lug * scale;
+            const caseHeight = watch.width * scale;
+            const caseX = 6;
+            const caseY = 6;
+
+            // Determine rounding based on watch type
+            let rx = 4, ry = 4;
+            if (watch.type.includes('G-SHOCK')) {
+                rx = 2; ry = 2; // More square for G-SHOCK
+            } else if (watch.type.includes('Minimal') || watch.type.includes('Ladies')) {
+                rx = 6; ry = 6; // More rounded for elegant designs
+            }
+
+            const svgWidth = lugWidth + 12;
+            const svgHeight = caseHeight + 50;
+
+            return `
+                <svg class="watch-svg ${className}" viewBox="0 0 ${svgWidth} ${svgHeight}" width="100" height="${(caseHeight / lugWidth) * 100}">
+                    <defs>
+                        <linearGradient id="grad-${className}" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#fff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#f9f9f9;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Case shadow -->
+                    <rect x="${caseX}" y="${caseY + 1.5}" width="${lugWidth}" height="${caseHeight}" rx="${rx}" ry="${ry}"
+                          fill="rgba(0,0,0,0.08)" />
+
+                    <!-- Main case -->
+                    <rect x="${caseX}" y="${caseY}" width="${lugWidth}" height="${caseHeight}" rx="${rx}" ry="${ry}"
+                          class="watch-case" fill="url(#grad-${className})" />
+
+                    <!-- Inner bezel (optional depth) -->
+                    <rect x="${caseX + 0.8}" y="${caseY + 0.8}" width="${lugWidth - 1.6}" height="${caseHeight - 1.6}" rx="${Math.max(0, rx - 0.5)}" ry="${Math.max(0, ry - 0.5)}"
+                          fill="none" stroke="#ddd" stroke-width="0.4" opacity="0.5" />
+
+                    <!-- Crown indicator (small circle on right side) -->
+                    <circle cx="${caseX + lugWidth + 1}" cy="${caseY + caseHeight/3}" r="1.2" fill="#bbb" />
+
+                    <!-- Model label -->
+                    <text x="${caseX + lugWidth/2}" y="${caseY + caseHeight/2 + 1.5}" class="watch-label">${watch.model}</text>
+
+                    <!-- Dimension line -->
+                    <line x1="${caseX}" y1="${caseY + caseHeight + 8}" x2="${caseX + lugWidth}" y2="${caseY + caseHeight + 8}" class="dimension-line"/>
+                    <line x1="${caseX}" y1="${caseY + caseHeight + 6}" x2="${caseX}" y2="${caseY + caseHeight + 10}" class="dimension-line"/>
+                    <line x1="${caseX + lugWidth}" y1="${caseY + caseHeight + 6}" x2="${caseX + lugWidth}" y2="${caseY + caseHeight + 10}" class="dimension-line"/>
+
+                    <!-- Dimension text -->
+                    <text x="${caseX + lugWidth/2}" y="${caseY + caseHeight + 22}" class="dimension-text">${watch.lug}mm</text>
+                </svg>
+            `;
+        }
+
+        function render() {
+            const container = document.getElementById('svg-container');
+            const readout = document.getElementById('readout-content');
+
+            if (!selectedWatches.a && !selectedWatches.b) {
+                container.innerHTML = '<div class="message">👈 Click a watch to start</div>';
+                readout.innerHTML = '<div class="message">Select watches</div>';
+                return;
+            }
+
+            let svg = '';
+            let specs = '';
+
+            if (selectedWatches.a) {
+                svg += generateSVG(selectedWatches.a, 'watch-a');
+                specs += `
+                    <div class="watch-specs">
+                        <h4>${selectedWatches.a.model}</h4>
+                        <div class="spec-row"><span class="spec-label">Lug:</span><span class="spec-value">${selectedWatches.a.lug}mm</span></div>
+                        <div class="spec-row"><span class="spec-label">Width:</span><span class="spec-value">${selectedWatches.a.width}mm</span></div>
+                        <div class="spec-row"><span class="spec-label">Thick:</span><span class="spec-value">${selectedWatches.a.thickness}mm</span></div>
+                        <div class="spec-row"><span class="spec-label">Band:</span><span class="spec-value">${selectedWatches.a.band}mm</span></div>
+                    </div>
+                `;
+            }
+
+            if (selectedWatches.b) {
+                svg += generateSVG(selectedWatches.b, 'watch-b');
+                specs += `
+                    <div class="watch-specs watch-b">
+                        <h4>${selectedWatches.b.model}</h4>
+                        <div class="spec-row"><span class="spec-label">Lug:</span><span class="spec-value">${selectedWatches.b.lug}mm</span></div>
+                        <div class="spec-row"><span class="spec-label">Width:</span><span class="spec-value">${selectedWatches.b.width}mm</span></div>
+                        <div class="spec-row"><span class="spec-label">Thick:</span><span class="spec-value">${selectedWatches.b.thickness}mm</span></div>
+                        <div class="spec-row"><span class="spec-label">Band:</span><span class="spec-value">${selectedWatches.b.band}mm</span></div>
+                    </div>
+                `;
+            }
+
+            if (selectedWatches.a && selectedWatches.b) {
+                const lugDiff = (selectedWatches.b.lug - selectedWatches.a.lug).toFixed(1);
+                const widthDiff = (selectedWatches.b.width - selectedWatches.a.width).toFixed(1);
+                specs += `
+                    <div class="comparison-row">
+                        📊 Diff: Lug ${lugDiff > 0 ? '+' : ''}${lugDiff}mm
+                    </div>
+                `;
+            }
+
+            container.innerHTML = svg;
+            readout.innerHTML = specs;
+        }
+
+        function resetApp() {
+            selectedWatches = {a: null, b: null};
+            document.getElementById('series-filter').value = '';
+            document.getElementById('type-filter').value = '';
+            filterWatches();
+            render();
+        }
+
+        // Initialize
+        filterWatches();
+        render();
+    </script>
+</body>
+</html>
