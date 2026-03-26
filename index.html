@@ -179,6 +179,42 @@
             position: relative;
         }
 
+        .watch-photo-container {
+            cursor: grab;
+            user-select: none;
+            pointer-events: auto;
+            position: relative;
+            touch-action: none;
+            padding: 8px;
+            border-radius: 6px;
+            transition: transform 0.1s;
+        }
+
+        .watch-photo-container:active {
+            cursor: grabbing;
+        }
+
+        .watch-photo-container.watch-a {
+            border: 2px solid #667eea;
+            background: rgba(102, 126, 234, 0.04);
+        }
+
+        .watch-photo-container.watch-b {
+            border: 2px solid #764ba2;
+            background: rgba(118, 75, 162, 0.04);
+        }
+
+        .watch-photo-container.watch-c {
+            border: 2px solid #27ae60;
+            background: rgba(39, 174, 96, 0.04);
+        }
+
+        .watch-photo {
+            max-width: 120px;
+            height: auto;
+            display: block;
+        }
+
         svg {
             cursor: grab;
             user-select: none;
@@ -626,19 +662,20 @@
 
         // Global pointer event handlers (attach once)
         document.addEventListener('pointerdown', (e) => {
-            const svgEl = e.target.closest('.watch-svg');
-            if (!svgEl) return;
+            // Support both photo containers and SVG elements
+            const watchEl = e.target.closest('.watch-photo-container') || e.target.closest('svg');
+            if (!watchEl) return;
 
-            dragState.svg = svgEl;
-            if (svgEl.classList.contains('watch-a')) dragState.slot = 'a';
-            else if (svgEl.classList.contains('watch-b')) dragState.slot = 'b';
-            else if (svgEl.classList.contains('watch-c')) dragState.slot = 'c';
+            dragState.svg = watchEl;
+            if (watchEl.classList.contains('watch-a')) dragState.slot = 'a';
+            else if (watchEl.classList.contains('watch-b')) dragState.slot = 'b';
+            else if (watchEl.classList.contains('watch-c')) dragState.slot = 'c';
             else return;
 
             dragState.startX = e.clientX - dragPositions[dragState.slot].x;
             dragState.startY = e.clientY - dragPositions[dragState.slot].y;
-            svgEl.style.cursor = 'grabbing';
-            svgEl.setPointerCapture(e.pointerId);
+            watchEl.style.cursor = 'grabbing';
+            watchEl.setPointerCapture(e.pointerId);
         });
 
         document.addEventListener('pointermove', (e) => {
@@ -712,112 +749,21 @@
         }
 
         function generateSVG(watch, className) {
-            const scale = 2.0;
-            const lugWidth = watch.lug * scale;
-            const caseHeight = watch.width * scale;
-            const caseX = 6;
-            const caseY = 6;
-            const svgWidth = lugWidth + 12;
-            const svgHeight = caseHeight + 50;
-            const archetype = getArchetype(watch);
-
-            const baseContent = (caseShape) => `
-                <svg class="watch-svg ${className}" viewBox="0 0 ${svgWidth} ${svgHeight}" width="100" height="${(caseHeight / lugWidth) * 100}">
-                    <defs>
-                        <linearGradient id="grad-${className}" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#fff;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#f9f9f9;stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    ${caseShape}
-                    <text x="${caseX + lugWidth/2}" y="${caseY + caseHeight/2 + 1.5}" class="watch-label">${watch.model}</text>
-                    <line x1="${caseX}" y1="${caseY + caseHeight + 8}" x2="${caseX + lugWidth}" y2="${caseY + caseHeight + 8}" class="dimension-line"/>
-                    <line x1="${caseX}" y1="${caseY + caseHeight + 6}" x2="${caseX}" y2="${caseY + caseHeight + 10}" class="dimension-line"/>
-                    <line x1="${caseX + lugWidth}" y1="${caseY + caseHeight + 6}" x2="${caseX + lugWidth}" y2="${caseY + caseHeight + 10}" class="dimension-line"/>
-                    <text x="${caseX + lugWidth/2}" y="${caseY + caseHeight + 22}" class="dimension-text">${watch.lug}mm</text>
-                </svg>
+            // Load product photo instead of generating SVG archetype
+            const imagePath = `images/watches/400/${watch.model}.png`;
+            return `
+                <div class="watch-photo-container ${className}" style="display: flex; flex-direction: column; align-items: center; position: relative;">
+                    <img
+                        src="${imagePath}"
+                        alt="${watch.model}"
+                        class="watch-photo"
+                        style="max-width: 120px; height: auto; cursor: grab; user-select: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); touch-action: none;"
+                        onerror="this.src='images/watches/120/${watch.model}.png'; this.style.maxWidth='80px';"
+                    />
+                    <div style="font-size: 11px; font-weight: 600; margin-top: 4px; text-align: center;">${watch.model}</div>
+                    <div style="font-size: 9px; color: #666; margin-top: 2px;">${watch.lug}mm lug</div>
+                </div>
             `;
-
-            let caseShape = '';
-
-            if (archetype === 'square-digital') {
-                caseShape = `
-                    <rect x="${caseX}" y="${caseY + 1.5}" width="${lugWidth}" height="${caseHeight}" rx="3" ry="3" fill="rgba(0,0,0,0.08)" />
-                    <rect x="${caseX}" y="${caseY}" width="${lugWidth}" height="${caseHeight}" rx="3" ry="3" class="watch-case" fill="url(#grad-${className})" />
-                    <rect x="${caseX + 1}" y="${caseY + 1.5}" width="${lugWidth - 2}" height="${caseHeight * 0.5}" fill="none" stroke="#999" stroke-width="1" opacity="0.4" rx="1" />
-                    <circle cx="${caseX + lugWidth + 0.5}" cy="${caseY + caseHeight/3}" r="1" fill="#999" />
-                `;
-            } else if (archetype === 'slim-digital') {
-                caseShape = `
-                    <rect x="${caseX}" y="${caseY + 1.5}" width="${lugWidth}" height="${caseHeight}" rx="2" ry="2" fill="rgba(0,0,0,0.08)" />
-                    <rect x="${caseX}" y="${caseY}" width="${lugWidth}" height="${caseHeight}" rx="2" ry="2" class="watch-case" fill="url(#grad-${className})" />
-                    <rect x="${caseX + 0.5}" y="${caseY + 0.5}" width="${lugWidth - 1}" height="${caseHeight - 1}" fill="none" stroke="#ddd" stroke-width="0.3" opacity="0.5" rx="1" />
-                `;
-            } else if (archetype === 'square-gshock') {
-                caseShape = `
-                    <rect x="${caseX}" y="${caseY + 1.5}" width="${lugWidth}" height="${caseHeight}" rx="2" ry="2" fill="rgba(0,0,0,0.1)" />
-                    <rect x="${caseX}" y="${caseY}" width="${lugWidth}" height="${caseHeight}" rx="2" ry="2" class="watch-case" fill="url(#grad-${className})" />
-                    <rect x="${caseX + 1.5}" y="${caseY + 1.5}" width="${lugWidth - 3}" height="${caseHeight - 3}" fill="none" stroke="#666" stroke-width="1" opacity="0.3" rx="1" />
-                    <circle cx="${caseX + 1.5}" cy="${caseY + 1.5}" r="0.8" fill="#999" opacity="0.4" />
-                    <circle cx="${caseX + lugWidth - 1.5}" cy="${caseY + 1.5}" r="0.8" fill="#999" opacity="0.4" />
-                    <circle cx="${caseX + lugWidth - 1.5}" cy="${caseY + caseHeight - 1.5}" r="0.8" fill="#999" opacity="0.4" />
-                    <circle cx="${caseX + lugWidth + 0.5}" cy="${caseY + caseHeight/2.5}" r="1.2" fill="#aaa" />
-                `;
-            } else if (archetype === 'triple-gshock') {
-                caseShape = `
-                    <rect x="${caseX}" y="${caseY + 1.5}" width="${lugWidth}" height="${caseHeight}" rx="1" ry="1" fill="rgba(0,0,0,0.1)" />
-                    <rect x="${caseX}" y="${caseY}" width="${lugWidth}" height="${caseHeight}" rx="1" ry="1" class="watch-case" fill="url(#grad-${className})" />
-                    <rect x="${caseX + 2}" y="${caseY + 2}" width="${lugWidth - 4}" height="${caseHeight * 0.3}" fill="none" stroke="#666" stroke-width="1" opacity="0.3" />
-                    <rect x="${caseX + 2}" y="${caseY + caseHeight * 0.35}" width="${lugWidth - 4}" height="${caseHeight * 0.3}" fill="none" stroke="#666" stroke-width="1" opacity="0.3" />
-                    <rect x="${caseX + 2}" y="${caseY + caseHeight * 0.7}" width="${lugWidth - 4}" height="${caseHeight * 0.25}" fill="none" stroke="#666" stroke-width="1" opacity="0.3" />
-                    <circle cx="${caseX + lugWidth + 0.5}" cy="${caseY + caseHeight * 0.4}" r="1.2" fill="#aaa" />
-                `;
-            } else if (archetype === 'round-gshock') {
-                caseShape = `
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2 + 1.5}" r="${Math.min(lugWidth, caseHeight) / 2 + 1}" fill="rgba(0,0,0,0.08)" />
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2}" r="${Math.min(lugWidth, caseHeight) / 2}" class="watch-case" fill="url(#grad-${className})" />
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2}" r="${Math.min(lugWidth, caseHeight) / 2 - 1.5}" fill="none" stroke="#ddd" stroke-width="1" opacity="0.4" />
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2}" r="${Math.min(lugWidth, caseHeight) / 2 - 2.5}" fill="none" stroke="#999" stroke-width="0.5" opacity="0.3" />
-                    <circle cx="${caseX + lugWidth + 0.5}" cy="${caseY + caseHeight/2}" r="1.2" fill="#aaa" />
-                `;
-            } else if (archetype === 'octo-gshock') {
-                const corners = lugWidth / 5;
-                const points = [
-                    [caseX + corners, caseY],
-                    [caseX + lugWidth - corners, caseY],
-                    [caseX + lugWidth, caseY + corners],
-                    [caseX + lugWidth, caseY + caseHeight - corners],
-                    [caseX + lugWidth - corners, caseY + caseHeight],
-                    [caseX + corners, caseY + caseHeight],
-                    [caseX, caseY + caseHeight - corners],
-                    [caseX, caseY + corners],
-                ].map(([x, y]) => `${x},${y}`).join(' ');
-                caseShape = `
-                    <polygon points="${points}" fill="rgba(0,0,0,0.08)" />
-                    <polygon points="${points}" class="watch-case" fill="url(#grad-${className})" />
-                    <polygon points="${points}" fill="none" stroke="#ddd" stroke-width="0.5" opacity="0.5" />
-                    <circle cx="${caseX + lugWidth + 0.5}" cy="${caseY + caseHeight/2}" r="1.2" fill="#aaa" />
-                `;
-            } else if (archetype === 'round-analog') {
-                caseShape = `
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2 + 1.5}" r="${Math.min(lugWidth, caseHeight) / 2 + 0.5}" fill="rgba(0,0,0,0.08)" />
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2}" r="${Math.min(lugWidth, caseHeight) / 2}" class="watch-case" fill="url(#grad-${className})" />
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2}" r="${Math.min(lugWidth, caseHeight) / 2 - 1}" fill="none" stroke="#999" stroke-width="1" opacity="0.4" />
-                    <line x1="${caseX + lugWidth/2}" y1="${caseY + caseHeight/2 - Math.min(lugWidth, caseHeight)/3}" x2="${caseX + lugWidth/2}" y2="${caseY + caseHeight/2}" stroke="#666" stroke-width="1" opacity="0.5" />
-                    <line x1="${caseX + lugWidth/2}" y1="${caseY + caseHeight/2}" x2="${caseX + lugWidth/2 + Math.min(lugWidth, caseHeight)/4}" y2="${caseY + caseHeight/2}" stroke="#666" stroke-width="0.8" opacity="0.5" />
-                    <circle cx="${caseX + lugWidth/2}" cy="${caseY + caseHeight/2}" r="0.8" fill="#999" opacity="0.6" />
-                `;
-            } else if (archetype === 'rect-dual') {
-                caseShape = `
-                    <rect x="${caseX}" y="${caseY + 1.5}" width="${lugWidth}" height="${caseHeight}" rx="2" ry="2" fill="rgba(0,0,0,0.08)" />
-                    <rect x="${caseX}" y="${caseY}" width="${lugWidth}" height="${caseHeight}" rx="2" ry="2" class="watch-case" fill="url(#grad-${className})" />
-                    <rect x="${caseX + 0.8}" y="${caseY + 0.8}" width="${lugWidth - 1.6}" height="${caseHeight * 0.35}" fill="none" stroke="#666" stroke-width="0.8" opacity="0.4" rx="1" />
-                    <rect x="${caseX + 0.8}" y="${caseY + caseHeight * 0.42}" width="${lugWidth - 1.6}" height="${caseHeight * 0.52}" fill="none" stroke="#666" stroke-width="0.8" opacity="0.4" rx="1" />
-                    <circle cx="${caseX + lugWidth + 0.5}" cy="${caseY + caseHeight/2}" r="1" fill="#999" />
-                `;
-            }
-
-            return baseContent(caseShape);
         }
 
         function render() {
